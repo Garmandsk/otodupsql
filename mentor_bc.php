@@ -10,16 +10,13 @@ $nearbyMentors = isset($_POST['nearbyMentors']) ? $_POST['nearbyMentors'] : [];
 $jadwalForm = isset($_POST['jadwal']) ? (array)$_POST['jadwal'] : [];
 $programLanjut = isset($_POST['programLanjut']) ? $_POST['programLanjut'] : []; 
 
-// var_dump($selectedSubjects[0]);
-//  var_dump($nearbyMentors);
-
 $filteredMentors = [];
 
 // Cek tiap mentor
 foreach ($nearbyMentors as $mentor) {
     $id_mentor = $mentor['id'];
     // Ambil data pelajaran mentor dari database
-    $pelajaran = ambilData("SELECT * FROM data_mentor WHERE id_user = $id_mentor");
+    $pelajaran = ambilData("SELECT * FROM data_mentor WHERE id_user = $1", [$id_mentor]); // Menggunakan parameterized query untuk PostgreSQL
     $subjects = explode(';', $pelajaran[0]['materi']); // Pecah pelajaran menjadi array
     $luring = explode(';', $pelajaran[0]['offline']); // Pecah pelajaran menjadi array
     $daring = explode(';', $pelajaran[0]['online']); // Pecah pelajaran menjadi array
@@ -33,11 +30,11 @@ foreach ($nearbyMentors as $mentor) {
     }
 
     $foundJadwal = true;
-    if(!empty($jadwalForm)){
+    if (!empty($jadwalForm)) {
         foreach ($jadwalForm as $jadwal_t) {
             if ($jadwal_t == 'online' && $daring[0] == 'N/A') {
                 $foundJadwal = false;
-            }else if ($jadwal_t == 'offline' && $luring[0] == 'N/A') {
+            } else if ($jadwal_t == 'offline' && $luring[0] == 'N/A') {
                 $foundJadwal = false;
             }
         }
@@ -45,6 +42,7 @@ foreach ($nearbyMentors as $mentor) {
     // Cek apakah pelajaran yang dipilih ada di array subjects
     if (($foundMatch || empty($selectedSubjects)) && $foundJadwal) {
 ?>
+
 <table style="background-color: #4D62A5; border-radius: 1vw; margin-bottom: 1vw; min-height: 180px;">
     <tr>
         <td rowspan="2">
@@ -97,8 +95,8 @@ foreach ($nearbyMentors as $mentor) {
             <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#modal<?= $mentor['id']; ?>"
                 style="color: white; font-size: 12px; margin-right: 1vw;">
                 <u>
-                Pesan Jasa
-            </u>
+                    Pesan Jasa
+                </u>
             </button>
 
             <!-- Modal -->

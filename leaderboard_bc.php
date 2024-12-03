@@ -41,15 +41,15 @@ if (empty($result)) {
         $jenjang = htmlspecialchars($row['jenjang']);
         $poin = $row[$materi];
 
-        if($materi == 'total_poin'){
+        if ($materi == 'total_poin') {
             $subject = "Total";
-        }else if($materi == 'matematika'){
+        } elseif ($materi == 'matematika') {
             $subject = 'Matematika';
-        }else if($materi == 'bahasa_inggris'){
+        } elseif ($materi == 'bahasa_inggris') {
             $subject = 'Bahasa Inggris';
-        }else if($materi == 'daspro'){
+        } elseif ($materi == 'daspro') {
             $subject = 'Dasar Pemrograman';
-        }else if($materi == 'utbk'){
+        } elseif ($materi == 'utbk') {
             $subject = 'UTBK';
         }
 
@@ -63,7 +63,7 @@ if (empty($result)) {
         } else {
             $medal = ''; // Tidak ada gambar untuk peringkat lebih dari 3
         }
-    
+        
         // Menampilkan data dalam tabel
         echo "<tr>
                 <td>$rank</td>

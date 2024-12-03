@@ -3,15 +3,17 @@ include 'function.php';
 include 'navbar.php';
 session_start();
 
-if( !isset($_SESSION['login']) ){
+if (!isset($_SESSION['login'])) {
     header("Location: login.php");
     exit;
 }
 
 $id = $_SESSION['user_id'];
-$koin = ambilData("SELECT koin FROM users WHERE id = $id");
 
-// Ambil latitude dan longitude pengguna dari POST
+// Menggunakan parameter query untuk menghindari SQL Injection
+$koin = ambilData("SELECT koin FROM users WHERE id = :id", ['id' => $id]);
+
+// Ambil latitude dan longitude pengguna dari SESSION
 $userLat = $_SESSION['latitude']; 
 $userLng = $_SESSION['longitude']; 
 
@@ -39,17 +41,15 @@ function calculateDistance($lat1, $lon1, $lat2, $lon2) {
 }
 
 // Filter mentor yang jaraknya kurang dari 2 km
-// $nearbyMentors = [['nama' => 'Lokasi pengguna', 'latitude' => $userLat, 'longitude' => $userLng]];
 $nearbyMentors = [];
 foreach ($mentors as $mentor) {
     $distance = calculateDistance($userLat, $userLng, $mentor['latitude'], $mentor['longitude']);
-    $mentor['jarak'] = number_format($distance,2);
-    $nearbyMentors[] = $mentor; // Menambahkan mentor ke array jika jaraknya <= 2 km
+    $mentor['jarak'] = number_format($distance, 2);
+    $nearbyMentors[] = $mentor;
 
     usort($nearbyMentors, function ($a, $b) {
         return $a['jarak'] <=> $b['jarak'];
     });
-  
 }
 
 ?>
@@ -166,35 +166,36 @@ foreach ($mentors as $mentor) {
     table td {
         border: 1px;
     }
+
     .section-title {
-            border-bottom: 0.1vw solid #1F2844;
-            padding-bottom: 2px;
-            display: inline-block;
-            margin-bottom: 1rem;
+        border-bottom: 0.1vw solid #1F2844;
+        padding-bottom: 2px;
+        display: inline-block;
+        margin-bottom: 1rem;
+    }
+
+    #map {
+        height: 300px;
+        width: 100%;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    @media (max-width: 768px) {
+        .button-container {
+            flex-direction: column;
+        }
+
+        .button-container button {
+            margin: 0.5rem 0;
+            width: 100%;
         }
 
         #map {
-            height: 300px;
-            width: 100%;
-            background-color: #f8f9fa;
-            border-radius: 8px;
+            height: 200px;
+            margin-top: 1rem;
         }
-
-        @media (max-width: 768px) {
-            .button-container {
-                flex-direction: column;
-            }
-            
-            .button-container button {
-                margin: 0.5rem 0;
-                width: 100%;
-            }
-
-            #map {
-                height: 200px;
-                margin-top: 1rem;
-            }
-        }
+    }
 
     /* css konten halaman (kode anugrah) */
     .box {
@@ -306,7 +307,7 @@ foreach ($mentors as $mentor) {
         <div style="display: flex; justify-content: space-between; margin-left: 5vw;">
             <div style="display: flex;">
                 <?php include "koin.php" ?>
-                
+
                 <div style="background-color: #4D62A5; color: white; padding: 0;">
                     <a href="riwayatmentor.php" class="btn btn-primary"
                         style="background-color: #4D62A5;  font-size: 14px; text-align: center; border: 0cm;"
@@ -326,76 +327,76 @@ foreach ($mentors as $mentor) {
             </div>
         </div>
         <div class="container py-4">
-        <div class="row g-4">
-            <!-- Kolom Mentor Search -->
-            <div class="col-12 col-md-4">
-                <h5 class="mb-3">Mentor apa yang Kamu cari?</h5>
-                
-                <!-- Materi Sekolah Section -->
-                <div class="mb-4">
-                    <div class="section-title">Materi sekolah</div>
-                    
-                    <div class="d-flex flex-wrap gap-2 mb-3">
-                        <button type="button" class="btn btn-outline-mtk rounded-pill" data-value="MM">
-                            Matematika
-                        </button>
-                        <button type="button" class="btn btn-outline-bing rounded-pill" data-value="Bing">
-                            B. Inggris
-                        </button>
+            <div class="row g-4">
+                <!-- Kolom Mentor Search -->
+                <div class="col-12 col-md-4">
+                    <h5 class="mb-3">Mentor apa yang Kamu cari?</h5>
+
+                    <!-- Materi Sekolah Section -->
+                    <div class="mb-4">
+                        <div class="section-title">Materi sekolah</div>
+
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            <button type="button" class="btn btn-outline-mtk rounded-pill" data-value="MM">
+                                Matematika
+                            </button>
+                            <button type="button" class="btn btn-outline-bing rounded-pill" data-value="Bing">
+                                B. Inggris
+                            </button>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-utbk rounded-pill" data-value="UTBK">
+                                UTBK
+                            </button>
+                            <button type="button" class="btn btn-outline-dp rounded-pill" data-value="Daspro">
+                                Dasar Pemrograman
+                            </button>
+                        </div>
                     </div>
-                    
-                    <div class="d-flex flex-wrap gap-2">
-                        <button type="button" class="btn btn-outline-utbk rounded-pill" data-value="UTBK">
-                            UTBK
+
+                    <!-- Pemrograman Lanjutan Section -->
+                    <div>
+                        <div class="section-title">Pemrograman Lanjutan</div>
+
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            <button type="button" class="btn btn-outline-bing rounded-pill" data-value="desain fa">
+                                <i>Front-end App</i>
+                            </button>
+                            <button type="button" class="btn btn-outline-bing rounded-pill" data-value="desain fw">
+                                <i>Front-end Web</i>
+                            </button>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-bing rounded-pill" data-value="desain be">
+                                <i>Back-end</i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kolom Ketersediaan -->
+                <div class="col-12 col-md-4">
+                    <h5 class="mb-3">Ketersediaan mentor?</h5>
+                    <div class="d-flex flex-column gap-2 col-6">
+                        <button type="button" class="btn btn-outline-off rounded-pill" data-value="offline">
+                            Luring / <i>Offline</i>
                         </button>
-                        <button type="button" class="btn btn-outline-dp rounded-pill" data-value="Daspro">
-                            Dasar Pemrograman
+                        <button type="button" class="btn btn-outline-on rounded-pill" data-value="online">
+                            Daring / <i>Online</i>
                         </button>
                     </div>
                 </div>
 
-                <!-- Pemrograman Lanjutan Section -->
-                <div>
-                    <div class="section-title">Pemrograman Lanjutan</div>
-                    
-                    <div class="d-flex flex-wrap gap-2 mb-3">
-                        <button type="button" class="btn btn-outline-bing rounded-pill" data-value="desain fa">
-                            <i>Front-end App</i>
-                        </button>
-                        <button type="button" class="btn btn-outline-bing rounded-pill" data-value="desain fw">
-                            <i>Front-end Web</i>
-                        </button>
-                    </div>
-                    
-                    <div class="d-flex flex-wrap gap-2">
-                        <button type="button" class="btn btn-outline-bing rounded-pill" data-value="desain be">
-                            <i>Back-end</i>
-                        </button>
-                    </div>
+                <!-- Kolom Map -->
+                <div class="col-12 col-md-4">
+                    <h5 class="mb-3">Peta lokasi mentor</h5>
+                    <div id="map"></div>
                 </div>
-            </div>
-
-            <!-- Kolom Ketersediaan -->
-            <div class="col-12 col-md-4">
-                <h5 class="mb-3">Ketersediaan mentor?</h5>
-                <div class="d-flex flex-column gap-2 col-6">
-                    <button type="button" class="btn btn-outline-off rounded-pill" data-value="offline">
-                        Luring / <i>Offline</i>
-                    </button>
-                    <button type="button" class="btn btn-outline-on rounded-pill" data-value="online">
-                        Daring / <i>Online</i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Kolom Map -->
-            <div class="col-12 col-md-4">
-                <h5 class="mb-3">Peta lokasi mentor</h5>
-                <div id="map"></div>
             </div>
         </div>
-    </div>
-        
+
         <h5 style="margin-left: 5vw;">List mentor</h5><br>
 
         <!--Baris pertama-->
@@ -414,9 +415,10 @@ foreach ($mentors as $mentor) {
     </main><br><br><br>
 
     <footer>
-        <img src="image/logo otodu terang.png" alt="logo" style="width: 100px ; margin-right: 20px; margin-left: 23px; min-width: 10vw; height : 20px ; min-height : 2vw;">
+        <img src="image/logo otodu terang.png" alt="logo"
+            style="width: 100px ; margin-right: 20px; margin-left: 23px; min-width: 10vw; height : 20px ; min-height : 2vw;">
         <!-- 120px -->
-        <div style = "font-size : 12px !important; font-family: 'Martian Mono';">@2024 OTODU Limited</div>
+        <div style="font-size : 12px !important; font-family: 'Martian Mono';">@2024 OTODU Limited</div>
         <!-- <div class = "fs-6" style="font-family: 'Martian Mono'; ">@2024 OTODU Limited</div> -->
     </footer>
 

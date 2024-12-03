@@ -1,6 +1,6 @@
 <?php
 session_start();
-include 'config.php';
+include 'config.php'; // Pastikan config menggunakan PDO untuk PostgreSQL
 
 if (isset($_SESSION['login'])) {
     header("Location: dashboard.php");
@@ -8,20 +8,23 @@ if (isset($_SESSION['login'])) {
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $email = $_POST['email'];
-    $nama = $_POST['nama'];
-    $nomor = $_POST['nomor'];
-    $latitude = $_POST['latitude'];
-    $longitude = $_POST['longitude'];
+    // Input sanitasi
+    $email = trim($_POST['email']);
+    $nama = trim($_POST['nama']);
+    $nomor = trim($_POST['nomor']);
+    $latitude = trim($_POST['latitude']);
+    $longitude = trim($_POST['longitude']);
     $password = $_POST['password'];
     $passwordKonfirmasi = $_POST['passwordKonfirmasi'];
-    $role = $_POST['role'];
-    if ($role == 'Siswa') {
+    $role = trim($_POST['role']);
+    
+    if ($role === 'Siswa') {
         $nama .= "_new";
-    } else if ($role == 'Mentor') {
+    } elseif ($role === 'Mentor') {
         $nama .= "_newMentor";
     }
 
+    // Validasi dasar
     if ($password !== $passwordKonfirmasi) {
         echo "Password dan Konfirmasi Password tidak sama.";
         exit;
@@ -29,32 +32,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         echo "Lokasi belum dipilih. Silakan pilih lokasi pada peta.";
         exit;
     } else {
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        try {
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
-        // Cek apakah email sudah terdaftar
-        $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $result = $stmt->get_result();
-            
-        if ($result->num_rows > 0) {
-            echo "Email sudah terdaftar. Silakan gunakan email lain.";
-            exit;
-        } else {
-            $stmt = $conn->prepare("INSERT INTO users (email, nama, nomor, latitude, longitude, password, role) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("sssddss", $email, $nama, $nomor, $latitude, $longitude, $hashedPassword, $role);
-            
-            if ($stmt->execute()) {
-                $_SESSION['new_user'] = true;
-                echo "success";
+            // Cek apakah email sudah terdaftar
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE email = :email");
+            $stmt->bindParam(':email', $email, PDO::PARAM_STR);
+            $stmt->execute();
+            $emailExists = $stmt->fetchColumn();
+
+            if ($emailExists > 0) {
+                echo "Email sudah terdaftar. Silakan gunakan email lain.";
+                exit;
             } else {
-                echo "Gagal melakukan registrasi. Silakan coba lagi.";
-            }
-            exit;
-        }
-        $stmt->close();
-        $conn->close();
+                // Insert data pengguna baru
+                $insertStmt = $conn->prepare("INSERT INTO users (email, nama, nomor, latitude, longitude, password, role) VALUES (:email, :nama, :nomor, :latitude, :longitude, :password, :role)");
+                $insertStmt->bindParam(':email', $email, PDO::PARAM_STR);
+                $insertStmt->bindParam(':nama', $nama, PDO::PARAM_STR);
+                $insertStmt->bindParam(':nomor', $nomor, PDO::PARAM_STR);
+                $insertStmt->bindParam(':latitude', $latitude, PDO::PARAM_STR);
+                $insertStmt->bindParam(':longitude', $longitude, PDO::PARAM_STR);
+                $insertStmt->bindParam(':password', $hashedPassword, PDO::PARAM_STR);
+                $insertStmt->bindParam(':role', $role, PDO::PARAM_STR);
 
+                if ($insertStmt->execute()) {
+                    $_SESSION['new_user'] = true;
+                    echo "success";
+                } else {
+                    echo "Gagal melakukan registrasi. Silakan coba lagi.";
+                }
+            }
+        } catch (PDOException $e) {
+            echo "Terjadi kesalahan: " . htmlspecialchars($e->getMessage());
+        }
     }
 }
 ?>
