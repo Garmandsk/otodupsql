@@ -1,6 +1,6 @@
 <?php
 session_start();
-include 'config.php';
+include 'config.php'; // Pastikan file ini mengatur koneksi menggunakan PDO
 
 if (isset($_SESSION['login'])) {
     header("Location: dashboard.php");
@@ -16,95 +16,95 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         exit;
     }
 
-    // Menggunakan PDO untuk query SELECT
-    $sql = "SELECT * FROM users WHERE email = :email";
-    $stmt = $conn->prepare($sql);
-    $stmt->bindValue(':email', $email, PDO::PARAM_STR);
-    $stmt->execute();
+    try {
+        // Menggunakan prepared statement untuk keamanan
+        $sql = "SELECT * FROM users WHERE email = :email";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(':email', $email);
+        $stmt->execute();
+        
+        if ($stmt->rowCount() > 0) {
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (password_verify($password, $row['password'])) {
+                // Menyimpan data pengguna ke session
+                $_SESSION['user_id'] = $row['id'];
+                $_SESSION['user_email'] = $row['email'];
+                $_SESSION['user_name'] = $row['nama'];
+                $_SESSION['no_hp'] = $row['nomor'];
+                $_SESSION['role'] = $row['role'];
+                $_SESSION['latitude'] = $row['latitude'];
+                $_SESSION['longitude'] = $row['longitude'];
+                $_SESSION['login'] = true;
 
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($row) {
-        if (password_verify($password, $row['password'])) {
-            // Set session
-            $_SESSION['user_id'] = $row['id'];
-            $_SESSION['user_email'] = $row['email'];
-            $_SESSION['user_name'] = $row['nama'];
-            $_SESSION['no_hp'] = $row['nomor'];
-            $_SESSION['role'] = $row['role'];
-            $_SESSION['latitude'] = $row['latitude'];
-            $_SESSION['longitude'] = $row['longitude'];
-            $_SESSION['login'] = true;
-
-            if (isset($row['materi_terakhir'])) {
-                $_SESSION['materi_terakhir'] = $row['materi_terakhir'];
-            }
-
-            // Jika username berakhiran "_new"
-            if (str_ends_with($row['nama'], "_new")) {
-
-                // Insert poin default 0
-                $poinSql = "INSERT INTO poin (id_user) VALUES (:id_user)";
-                $poinStmt = $conn->prepare($poinSql);
-                $poinStmt->bindValue(':id_user', $row['id'], PDO::PARAM_INT);
-                $poinStmt->execute();
-
-                // Hapus "_new" dan update nama
-                $newUsername = str_replace("_new", "", $row['nama']);
-                $_SESSION['user_name'] = $newUsername;
-                $updateSql = "UPDATE users SET nama = :new_name WHERE id = :id";
-                $updateStmt = $conn->prepare($updateSql);
-                $updateStmt->bindValue(':new_name', $newUsername, PDO::PARAM_STR);
-                $updateStmt->bindValue(':id', $row['id'], PDO::PARAM_INT);
-                $updateStmt->execute();
-
-                echo "new_user";
-                exit;
-            } 
-            // Jika username berakhiran "_newMentor"
-            else if (str_ends_with($row['nama'], "_newMentor")) {
-                $newUsername = str_replace("_newMentor", "", $row['nama']);
-                $_SESSION['user_name'] = $newUsername;
-
-                $updateSql = "UPDATE users SET nama = :new_name WHERE id = :id";
-                $updateStmt = $conn->prepare($updateSql);
-                $updateStmt->bindValue(':new_name', $newUsername, PDO::PARAM_STR);
-                $updateStmt->bindValue(':id', $row['id'], PDO::PARAM_INT);
-                $updateStmt->execute();
-
-                echo "new_mentor";
-                exit;
-            } else {
-                // Ambil nama_target untuk user
-                $id = $_SESSION['user_id'];
-                $targetSql = "
-                    SELECT nama_target 
-                    FROM user_materi 
-                    INNER JOIN target ON user_materi.kode_target = target.kode_target 
-                    WHERE id_user = :id_user";
-                $targetStmt = $conn->prepare($targetSql);
-                $targetStmt->bindValue(':id_user', $id, PDO::PARAM_INT);
-                $targetStmt->execute();
-
-                $row2 = $targetStmt->fetch(PDO::FETCH_ASSOC);
-                if ($row2) {
-                    $_SESSION['nama_target'] = $row2['nama_target'];
-                } else {
-                    unset($_SESSION['nama_target']);
+                if (isset($row['materi_terakhir'])) {
+                    $_SESSION['materi_terakhir'] = $row['materi_terakhir'];
                 }
 
-                echo "success";
+                if (str_ends_with($row['nama'], "_new")) {
+                    // Tambahkan poin default 0
+                    $poinSql = "INSERT INTO poin (id_user) VALUES (:id_user)";
+                    $poinStmt = $conn->prepare($poinSql);
+                    $poinStmt->bindParam(':id_user', $row['id'], PDO::PARAM_INT);
+                    $poinStmt->execute();
+
+                    // Update nama pengguna
+                    $newUsername = str_replace("_new", "", $row['nama']);
+                    $_SESSION['user_name'] = $newUsername;
+                    $updateSql = "UPDATE users SET nama = :nama WHERE id = :id";
+                    $updateStmt = $conn->prepare($updateSql);
+                    $updateStmt->bindParam(':nama', $newUsername);
+                    $updateStmt->bindParam(':id', $row['id'], PDO::PARAM_INT);
+                    $updateStmt->execute();
+
+                    echo "new_user";
+                    exit;
+                } elseif (str_ends_with($row['nama'], "_newMentor")) {
+                    $newUsername = str_replace("_newMentor", "", $row['nama']);
+                    $_SESSION['user_name'] = $newUsername;
+                    $updateSql = "UPDATE users SET nama = :nama WHERE id = :id";
+                    $updateStmt = $conn->prepare($updateSql);
+                    $updateStmt->bindParam(':nama', $newUsername);
+                    $updateStmt->bindParam(':id', $row['id'], PDO::PARAM_INT);
+                    $updateStmt->execute();
+
+                    echo "new_mentor";
+                    exit;
+                } else {
+                    $id = $_SESSION['user_id'];
+                    $sql = "SELECT target.nama_target 
+                            FROM user_materi 
+                            INNER JOIN target ON user_materi.kode_target = target.kode_target 
+                            WHERE user_materi.id_user = :id_user";
+                    $targetStmt = $conn->prepare($sql);
+                    $targetStmt->bindParam(':id_user', $id, PDO::PARAM_INT);
+                    $targetStmt->execute();
+                    $row2 = $targetStmt->fetch(PDO::FETCH_ASSOC);
+
+                    if ($row2) {
+                        $_SESSION['nama_target'] = $row2['nama_target'];
+                    } else {
+                        unset($_SESSION['nama_target']);
+                    }
+
+                    echo "success";
+                    exit;
+                }
+            } else {
+                echo "Password salah.";
                 exit;
             }
         } else {
-            echo "Password salah.";
+            echo "User tidak ditemukan.";
             exit;
         }
-    } else {
-        echo "User tidak ditemukan.";
+    } catch (PDOException $e) {
+        echo "Kesalahan: " . $e->getMessage();
         exit;
     }
 }
+
+$conn = null;
 ?>
 
 <!DOCTYPE html>
