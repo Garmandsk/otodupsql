@@ -51,23 +51,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $studyHistoryStr = implode(';', $studyHistory);
     
     // Simpan data ke dalam satu tabel
-    try {
-        $stmt = $conn->prepare("
-            INSERT INTO data_mentor (
-                id_user, materi, jenjang, online, offline, riwayat_studi
-            ) VALUES (?, ?, ?, ?, ?, ?)
-        ");
-        $stmt->bind_param("ssssss", $id_user, $materi, $jenjangStr, $onlineStr, $offlineStr, $studyHistoryStr);
-        $stmt->execute();
+  try {
+      // Menyiapkan query untuk memasukkan data
+      $stmt = $conn->prepare("
+          INSERT INTO data_mentor (
+              id_user, materi, jenjang, online, offline, riwayat_studi
+          ) VALUES (?, ?, ?, ?, ?, ?)
+      ");
+  
+      // Mengikat parameter
+      $stmt->bindValue(1, $id_user, PDO::PARAM_STR);
+      $stmt->bindValue(2, $materi, PDO::PARAM_STR);
+      $stmt->bindValue(3, $jenjangStr, PDO::PARAM_STR);
+      $stmt->bindValue(4, $onlineStr, PDO::PARAM_STR);
+      $stmt->bindValue(5, $offlineStr, PDO::PARAM_STR);
+      $stmt->bindValue(6, $studyHistoryStr, PDO::PARAM_STR);
+  
+      // Menjalankan query
+      $stmt->execute();
+  
+      echo "Success";
+  
+      // Jika ingin melakukan redirect setelah sukses
+      // header("Location: dashboard.php");
+      // exit;
+  
+  } catch (Exception $e) {
+      // Menangkap error jika ada
+      echo "Terjadi kesalahan: " . $e->getMessage();
+  }
 
-        echo "success";
-        // header("Location: dashboard.php");
-        exit;
-    } catch (Exception $e) {
-        echo "Terjadi kesalahan: " . $e->getMessage();
-    }
-    
-    $conn->close();
 }
 
 ?>
