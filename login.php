@@ -15,15 +15,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         echo "Email dan password harus diisi.";
         exit;
     }
-    $sql = "SELECT * FROM users WHERE email = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $result = $stmt->get_result();
 
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
+    // Menggunakan PDO untuk query SELECT
+    $sql = "SELECT * FROM users WHERE email = :email";
+    $stmt = $conn->prepare($sql);
+    $stmt->bindValue(':email', $email, PDO::PARAM_STR);
+    $stmt->execute();
+
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($row) {
         if (password_verify($password, $row['password'])) {
+            // Set session
             $_SESSION['user_id'] = $row['id'];
             $_SESSION['user_email'] = $row['email'];
             $_SESSION['user_name'] = $row['nama'];
@@ -32,62 +35,63 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $_SESSION['latitude'] = $row['latitude'];
             $_SESSION['longitude'] = $row['longitude'];
             $_SESSION['login'] = true;
-            if(isset($row['materi_terakhir'])){
+
+            if (isset($row['materi_terakhir'])) {
                 $_SESSION['materi_terakhir'] = $row['materi_terakhir'];
             }
 
-            //$_SESSION['nama_target'] = $row2['nama_target'];
-
+            // Jika username berakhiran "_new"
             if (str_ends_with($row['nama'], "_new")) {
 
-                // Inputkan poin dengan default 0
-                $poinSql = "INSERT INTO poin (id_user) VALUES (?)";
-                $stmt = $conn->prepare($poinSql);
-                $stmt->bind_param("i", $row['id']);
-                $stmt->execute();
-                $stmt->close();
+                // Insert poin default 0
+                $poinSql = "INSERT INTO poin (id_user) VALUES (:id_user)";
+                $poinStmt = $conn->prepare($poinSql);
+                $poinStmt->bindValue(':id_user', $row['id'], PDO::PARAM_INT);
+                $poinStmt->execute();
 
-                // Hapus "_new" dari username setelah preferensi diatur
+                // Hapus "_new" dan update nama
                 $newUsername = str_replace("_new", "", $row['nama']);
                 $_SESSION['user_name'] = $newUsername;
-                $updateSql = "UPDATE users SET nama = ? WHERE id = ?";
+                $updateSql = "UPDATE users SET nama = :new_name WHERE id = :id";
                 $updateStmt = $conn->prepare($updateSql);
-                $updateStmt->bind_param("si", $newUsername, $row['id']);
+                $updateStmt->bindValue(':new_name', $newUsername, PDO::PARAM_STR);
+                $updateStmt->bindValue(':id', $row['id'], PDO::PARAM_INT);
                 $updateStmt->execute();
-                $updateStmt->close();
 
                 echo "new_user";
                 exit;
-            } else if (str_ends_with($row['nama'], "_newMentor")) {
-                // Hapus "_new" dari username setelah preferensi diatur
+            } 
+            // Jika username berakhiran "_newMentor"
+            else if (str_ends_with($row['nama'], "_newMentor")) {
                 $newUsername = str_replace("_newMentor", "", $row['nama']);
                 $_SESSION['user_name'] = $newUsername;
-                $updateSql = "UPDATE users SET nama = ? WHERE id = ?";
+
+                $updateSql = "UPDATE users SET nama = :new_name WHERE id = :id";
                 $updateStmt = $conn->prepare($updateSql);
-                $updateStmt->bind_param("si", $newUsername, $row['id']);
+                $updateStmt->bindValue(':new_name', $newUsername, PDO::PARAM_STR);
+                $updateStmt->bindValue(':id', $row['id'], PDO::PARAM_INT);
                 $updateStmt->execute();
-                $updateStmt->close();
 
                 echo "new_mentor";
                 exit;
             } else {
+                // Ambil nama_target untuk user
                 $id = $_SESSION['user_id'];
-                $sql = "SELECT nama_target 
-                FROM user_materi 
-                INNER JOIN target ON user_materi.kode_target = target.kode_target 
-                WHERE id_user = $id";
+                $targetSql = "
+                    SELECT nama_target 
+                    FROM user_materi 
+                    INNER JOIN target ON user_materi.kode_target = target.kode_target 
+                    WHERE id_user = :id_user";
+                $targetStmt = $conn->prepare($targetSql);
+                $targetStmt->bindValue(':id_user', $id, PDO::PARAM_INT);
+                $targetStmt->execute();
 
-                $result = mysqli_query($conn, $sql);
-
-                // Cek apakah query berhasil dan mengembalikan data
-                if ($result && mysqli_num_rows($result) > 0) {
-                    $row2 = mysqli_fetch_assoc($result);
+                $row2 = $targetStmt->fetch(PDO::FETCH_ASSOC);
+                if ($row2) {
                     $_SESSION['nama_target'] = $row2['nama_target'];
                 } else {
-                    // Jika tidak ada data, pastikan session tetap kosong atau diatur nilainya
-                    unset($_SESSION['nama_target']); // atau $_SESSION['nama_target'] = null;
+                    unset($_SESSION['nama_target']);
                 }
-
 
                 echo "success";
                 exit;
@@ -100,12 +104,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         echo "User tidak ditemukan.";
         exit;
     }
-
-    $stmt->close();
 }
-$conn->close();
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">

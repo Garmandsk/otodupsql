@@ -1,12 +1,17 @@
 <?php
-  include 'config.php';
-  function ambilData($query){
-    global $conn;
-    $result = mysqli_query($conn, $query);
+include 'config.php'; // Memuat koneksi PDO
+
+function ambilData($query) {
+    global $conn; // Menggunakan koneksi PDO global
+    $stmt = $conn->prepare($query); // Menyiapkan query
+    $stmt->execute(); // Menjalankan query
     $rows = [];
-    while ($row = mysqli_fetch_assoc($result)){
+
+    // Mengambil semua hasil sebagai array asosiatif
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $rows[] = $row;
     }
-    return $rows;
+
+    return $rows; // Mengembalikan hasil
 }
 ?>

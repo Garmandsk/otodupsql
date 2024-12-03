@@ -496,8 +496,20 @@ if (
     } else if ($koin[0]['koin'] >= $harga_subtopik) {
         // Update koin
         $new_koin = $koin[0]['koin'] - $harga_subtopik;
-        mysqli_query($conn, "UPDATE users SET koin = $new_koin WHERE id = $id;");
-        mysqli_query($conn, "INSERT INTO beli_subtopik (kode_subtopik, id_user) VALUES ($kode_subtopik_pilih, $id);");
+        // Update koin user
+          $updateKoinSql = "UPDATE users SET koin = :new_koin WHERE id = :id";
+          $updateStmt = $conn->prepare($updateKoinSql);
+          $updateStmt->bindValue(':new_koin', $new_koin, PDO::PARAM_INT);
+          $updateStmt->bindValue(':id', $id, PDO::PARAM_INT);
+          $updateStmt->execute();
+          
+          // Insert ke tabel beli_subtopik
+          $insertSubtopikSql = "INSERT INTO beli_subtopik (kode_subtopik, id_user) VALUES (:kode_subtopik, :id)";
+          $insertSubtopikStmt = $conn->prepare($insertSubtopikSql);
+          $insertSubtopikStmt->bindValue(':kode_subtopik', $kode_subtopik_pilih, PDO::PARAM_INT);
+          $insertSubtopikStmt->bindValue(':id', $id, PDO::PARAM_INT);
+          $insertSubtopikStmt->execute();
+
 
         echo 'Selamat anda telah membeli subtopik ini!';
 
